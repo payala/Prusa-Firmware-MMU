@@ -124,7 +124,9 @@ jobs:
           mkdir build
           cd build
           cmake .. -G Ninja
-          ninja test_coverage_report
+          # lcov 2.x on ubuntu-24.04 fails on the coverage report; just build and run the tests
+          ninja
+          ctest --output-on-failure
 
 
     - name: Upload artifacts
