@@ -141,17 +141,8 @@ void Panic(ErrorCode ec) {
 }
 
 void RuntimeHWChecks() {
-    mv::vcc.Step();
-    if (mv::vcc.CurrentBandgapVoltage() > config::VCCADCThreshold) {
-        // stop all motors at once
-        mm::motion.AbortPlannedMoves();
-        // kill all TMC
-        mm::motion.Disable(mm::Idler);
-        mm::motion.Disable(mm::Selector);
-        mm::motion.Disable(mm::Pulley);
-        // call for help
-        Panic(ErrorCode::MCU_UNDERVOLTAGE_VCC);
-    }
+    // VCC undervoltage check (MCU_UNDERVOLTAGE_VCC) removed on purpose:
+    // MMU2S board with bridged D1, 5V from Einsy; brief dips must not halt the print.
 }
 
 /// Main loop of the firmware
