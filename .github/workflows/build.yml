@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
 
     # setup base required dependencies
@@ -37,7 +37,7 @@ jobs:
         submodules: true
 
     - name: Cache Dependencies
-      uses: actions/cache@v4.0.0
+      uses: actions/cache@v4
       id: cache-pkgs
       with:
           path: ".dependencies"
@@ -75,7 +75,7 @@ jobs:
           build/autopublish/*.hex
 
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       pull-requests: write
@@ -104,7 +104,7 @@ jobs:
         submodules: true
 
     - name: Cache Dependencies
-      uses: actions/cache@v4.0.0
+      uses: actions/cache@v4
       id: cache-pkgs
       with:
           path: ".dependencies"
