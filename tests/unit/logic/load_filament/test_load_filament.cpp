@@ -176,9 +176,23 @@ void FailedLoadToFindaResolveTryAgain(uint8_t slot, logic::LoadFilament &lf) {
     REQUIRE(VerifyState(lf, mg::FilamentLoadState::InSelector, config::toolCount, slot, false, false, ml::blink0, ml::off, ErrorCode::RUNNING, ProgressCode::FeedingToFinda));
     ClearButtons(lf);
 
-    SimulateIdlerHoming(lf);
+    // the retry invalidates homing of both axes - the Selector rehomes right after the Idler
+    SimulateIdlerAndSelectorHoming(lf);
 
-    LoadFilamentSuccessfulWithRehomeSelector(slot, lf);
+    // Stage 2 - feeding to finda
+    REQUIRE(WhileCondition(lf, std::bind(SimulateFeedToFINDA, _1, 100), 5000));
+    REQUIRE(VerifyState(lf, mg::FilamentLoadState::InSelector, slot, slot, true, true, ml::blink0, ml::off, ErrorCode::RUNNING, ProgressCode::RetractingFromFinda));
+
+    // Stage 3 - retracting from finda, the Selector rehomes afterwards
+    REQUIRE(WhileCondition(lf, std::bind(SimulateRetractFromFINDA, _1, 100), 5000));
+    REQUIRE(WhileCondition(
+        lf, [&](uint32_t) { return lf.State() == ProgressCode::RetractingFromFinda; }, 50000));
+    REQUIRE(VerifyState(lf, mg::FilamentLoadState::AtPulley, slot, 0xff, false, true, ml::off, ml::off, ErrorCode::RUNNING, ProgressCode::DisengagingIdler));
+
+    // Stage 4 - homing Selector, then let the Idler finish disengaging
+    SimulateSelectorHoming(lf);
+    REQUIRE(WhileTopState(lf, ProgressCode::DisengagingIdler, idlerEngageDisengageMaxSteps));
+    REQUIRE(VerifyState(lf, mg::FilamentLoadState::AtPulley, mi::Idler::IdleSlotIndex(), slot, false, false, ml::off, ml::off, ErrorCode::OK, ProgressCode::OK));
 }
 
 TEST_CASE("load_filament::invalid_slot", "[load_filament]") {
