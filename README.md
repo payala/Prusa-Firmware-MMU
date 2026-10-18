@@ -1,4 +1,41 @@
 # Prusa-Firmware-MMU
+
+## About this fork: MMU3 firmware for MMU2S boards
+
+This is an unofficial fork of [prusa3d/Prusa-Firmware-MMU](https://github.com/prusa3d/Prusa-Firmware-MMU). It runs the MMU3 firmware on **original MMU2S control boards**, which have a known power supply design flaw. The work is on branch `mmu2s-no-uv-check`, based on upstream `v3.0.3`.
+
+### The problem
+
+The MMU2S board gets its 5V from the printer's Einsy board through a series diode (D1). The diode drops the MMU's supply to about 4.3V, and the rail dips further under load. Many owners bridge D1 to get closer to 5V, but the rail still sits around 4.65-4.8V and has short dips. Prusa's own fix for this on newer units is the MMU3 PD-board.
+
+Since firmware 3.0.0, the MMU checks its own supply voltage on every main loop pass. It takes a single ADC sample of VCC (measured against the internal bandgap), with no filtering or debounce. If that one sample is below about 4.1V, the MMU panics with error **#04307 "MMU MCU undervoltage"** (`MCU_UNDERVOLTAGE_VCC`). It then disables all motors and stops the print.
+
+On an MMU2S board, a brief dip is enough to trigger this, even when the unit would have kept working fine. The halt doesn't protect anything; it just ruins the print.
+
+### What this fork changes
+
+- **Undervoltage check removed.** `RuntimeHWChecks()` in `src/main.cpp` no longer checks VCC. If the supply really does get too low, the MMU simply resets, as it did before 3.0.0, instead of halting on purpose.
+- **CI updated.** GitHub Actions now builds the firmware on every push to `mmu2s-*` branches, or on demand. The `.hex` is published as the `Firmware` artifact of each run. `BUILD_NUMBER` is pinned to the upstream release (896), so the printer sees the normal 3.0.3 version.
+
+Everything else is identical to upstream.
+
+### Who should use it
+
+Use it if you run MMU3 firmware on an MMU2S board and keep getting #04307 with a supply you know is good enough. If you have an MMU3 or an MMU2S with the PD-board, use the official firmware instead.
+
+### Flashing
+
+1. Download the `.hex` from the latest successful run in the **Actions** tab, under the `Firmware` artifact.
+2. Flash it with PrusaSlicer's firmware updater, the same way as an official MMU firmware.
+
+No changes are needed on the printer side.
+
+### Updating to a new upstream release
+
+Rebase `mmu2s-no-uv-check` onto the new upstream tag, keep the `RuntimeHWChecks()` change, and update `-DBUILD_NUMBER` in `.github/workflows/build.yml` to the matching upstream build number.
+
+---
+
 This repository includes source code and firmware releases for the Original Prusa Multi Material Unit based on 8-bit ATMEL microcontroller.
 
 The currently supported models are:
